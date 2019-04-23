@@ -10,7 +10,7 @@ Target Server Type    : MYSQL
 Target Server Version : 50717
 File Encoding         : 65001
 
-Date: 2019-04-21 16:19:30
+Date: 2019-04-23 11:22:26
 */
 
 SET FOREIGN_KEY_CHECKS=0;
@@ -193,25 +193,12 @@ CREATE TABLE `ewc_level3` (
 -- ----------------------------
 -- Records of ewc_level3
 -- ----------------------------
-INSERT INTO `ewc_level3` VALUES ('12', '3', '8', '01 04 08', '0', 'waste gravel and crushed rocks other than those mentioned in 01 04 07');
-INSERT INTO `ewc_level3` VALUES ('37', '6', '3', '02 02 03', '0', 'materials unsuitable for consumption or processing');
-INSERT INTO `ewc_level3` VALUES ('106', '17', '5', '05 01 05', '1', 'oil spills');
-INSERT INTO `ewc_level3` VALUES ('131', '20', '5', '06 01 05', '1', 'nitric acid and nitrous acid');
-INSERT INTO `ewc_level3` VALUES ('137', '21', '5', '06 02 05', '1', 'other bases');
-INSERT INTO `ewc_level3` VALUES ('265', '40', '1', '08 02 01', '0', 'waste coating powders');
-INSERT INTO `ewc_level3` VALUES ('297', '44', '7', '09 01 07', '0', 'photographic film and paper containing silver or silver compounds');
-INSERT INTO `ewc_level3` VALUES ('298', '44', '8', '09 01 08', '0', 'photographic film and paper free of silver or silver compounds');
-INSERT INTO `ewc_level3` VALUES ('506', '63', '3', '12 01 03', '1', 'non-ferrous metal filings and turnings');
-INSERT INTO `ewc_level3` VALUES ('508', '63', '5', '12 01 05', '1', 'plastics shavings and turnings');
-INSERT INTO `ewc_level3` VALUES ('567', '73', '2', '15 01 02', '1', 'plastic packaging');
-INSERT INTO `ewc_level3` VALUES ('569', '73', '4', '15 01 04', '0', 'metallic packaging');
-INSERT INTO `ewc_level3` VALUES ('594', '75', '20', '16 01 20', '0', 'glass');
-INSERT INTO `ewc_level3` VALUES ('664', '89', '3', '17 04 03', '0', 'lead');
-INSERT INTO `ewc_level3` VALUES ('666', '89', '5', '17 04 05', '1', 'iron and steel');
-INSERT INTO `ewc_level3` VALUES ('683', '92', '2', '17 08 02', '1', 'gypsum-based construction materials other than those mentioned in 17 08 01');
-INSERT INTO `ewc_level3` VALUES ('771', '105', '4', '19 10 04', '0', 'fluff-light fraction and dust other than those mentioned in 19 10 03');
+INSERT INTO `ewc_level3` VALUES ('591', '75', '17', '16 01 17', '1', 'ferrous metal');
 INSERT INTO `ewc_level3` VALUES ('782', '107', '1', '19 12 01', '0', 'paper and cardboard');
+INSERT INTO `ewc_level3` VALUES ('666', '89', '5', '17 04 05', '1', 'iron and steel');
+INSERT INTO `ewc_level3` VALUES ('131', '20', '5', '06 01 05', '1', 'nitric acid and nitrous acid');
 INSERT INTO `ewc_level3` VALUES ('833', '110', '2', '20 02 02', '0', 'soil and stones');
+INSERT INTO `ewc_level3` VALUES ('683', '92', '2', '17 08 02', '1', 'gypsum-based construction materials other than those mentioned in 17 08 01');
 
 -- ----------------------------
 -- Table structure for ewc_level3_full
@@ -1072,6 +1059,42 @@ INSERT INTO `ewc_level3_full` VALUES ('840', '111', '7', '20 03 07', '0', 'bulky
 INSERT INTO `ewc_level3_full` VALUES ('841', '111', '99', '20 03 99', '0', 'municipal wastes not otherwise specified');
 
 -- ----------------------------
+-- Table structure for ewc_level3_subset19
+-- ----------------------------
+DROP TABLE IF EXISTS `ewc_level3_subset19`;
+CREATE TABLE `ewc_level3_subset19` (
+  `id` varchar(255) DEFAULT NULL,
+  `parent_id` varchar(255) DEFAULT NULL,
+  `EWC_id` varchar(255) DEFAULT NULL,
+  `EWC_level3` varchar(255) DEFAULT NULL,
+  `hazardous` varchar(255) DEFAULT NULL,
+  `description` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- ----------------------------
+-- Records of ewc_level3_subset19
+-- ----------------------------
+INSERT INTO `ewc_level3_subset19` VALUES ('12', '3', '8', '01 04 08', '0', 'waste gravel and crushed rocks other than those mentioned in 01 04 07');
+INSERT INTO `ewc_level3_subset19` VALUES ('37', '6', '3', '02 02 03', '0', 'materials unsuitable for consumption or processing');
+INSERT INTO `ewc_level3_subset19` VALUES ('106', '17', '5', '05 01 05', '1', 'oil spills');
+INSERT INTO `ewc_level3_subset19` VALUES ('131', '20', '5', '06 01 05', '1', 'nitric acid and nitrous acid');
+INSERT INTO `ewc_level3_subset19` VALUES ('137', '21', '5', '06 02 05', '1', 'other bases');
+INSERT INTO `ewc_level3_subset19` VALUES ('265', '40', '1', '08 02 01', '0', 'waste coating powders');
+INSERT INTO `ewc_level3_subset19` VALUES ('297', '44', '7', '09 01 07', '0', 'photographic film and paper containing silver or silver compounds');
+INSERT INTO `ewc_level3_subset19` VALUES ('298', '44', '8', '09 01 08', '0', 'photographic film and paper free of silver or silver compounds');
+INSERT INTO `ewc_level3_subset19` VALUES ('506', '63', '3', '12 01 03', '1', 'non-ferrous metal filings and turnings');
+INSERT INTO `ewc_level3_subset19` VALUES ('508', '63', '5', '12 01 05', '1', 'plastics shavings and turnings');
+INSERT INTO `ewc_level3_subset19` VALUES ('567', '73', '2', '15 01 02', '1', 'plastic packaging');
+INSERT INTO `ewc_level3_subset19` VALUES ('569', '73', '4', '15 01 04', '0', 'metallic packaging');
+INSERT INTO `ewc_level3_subset19` VALUES ('594', '75', '20', '16 01 20', '0', 'glass');
+INSERT INTO `ewc_level3_subset19` VALUES ('664', '89', '3', '17 04 03', '0', 'lead');
+INSERT INTO `ewc_level3_subset19` VALUES ('666', '89', '5', '17 04 05', '1', 'iron and steel');
+INSERT INTO `ewc_level3_subset19` VALUES ('683', '92', '2', '17 08 02', '1', 'gypsum-based construction materials other than those mentioned in 17 08 01');
+INSERT INTO `ewc_level3_subset19` VALUES ('771', '105', '4', '19 10 04', '0', 'fluff-light fraction and dust other than those mentioned in 19 10 03');
+INSERT INTO `ewc_level3_subset19` VALUES ('782', '107', '1', '19 12 01', '0', 'paper and cardboard');
+INSERT INTO `ewc_level3_subset19` VALUES ('833', '110', '2', '20 02 02', '0', 'soil and stones');
+
+-- ----------------------------
 -- Table structure for ewc_level3_subset5
 -- ----------------------------
 DROP TABLE IF EXISTS `ewc_level3_subset5`;
@@ -1094,6 +1117,30 @@ INSERT INTO `ewc_level3_subset5` VALUES ('591', '75', '17', '16 01 17', '1', 'fe
 INSERT INTO `ewc_level3_subset5` VALUES ('506', '63', '3', '12 01 03', '1', 'non-ferrous metal filings and turnings');
 
 -- ----------------------------
+-- Table structure for ewc_level3_subset7
+-- ----------------------------
+DROP TABLE IF EXISTS `ewc_level3_subset7`;
+CREATE TABLE `ewc_level3_subset7` (
+  `id` varchar(255) DEFAULT NULL,
+  `parent_id` varchar(255) DEFAULT NULL,
+  `EWC_id` varchar(255) DEFAULT NULL,
+  `EWC_level3` varchar(255) DEFAULT NULL,
+  `hazardous` varchar(255) DEFAULT NULL,
+  `description` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- ----------------------------
+-- Records of ewc_level3_subset7
+-- ----------------------------
+INSERT INTO `ewc_level3_subset7` VALUES ('106', '17', '5', '05 01 05', '1', 'oil spills');
+INSERT INTO `ewc_level3_subset7` VALUES ('265', '40', '1', '08 02 01', '0', 'waste coating powders');
+INSERT INTO `ewc_level3_subset7` VALUES ('508', '63', '5', '12 01 05', '1', 'plastics shavings and turnings');
+INSERT INTO `ewc_level3_subset7` VALUES ('567', '73', '2', '15 01 02', '1', 'plastic packaging');
+INSERT INTO `ewc_level3_subset7` VALUES ('569', '73', '4', '15 01 04', '0', 'metallic packaging');
+INSERT INTO `ewc_level3_subset7` VALUES ('594', '75', '20', '16 01 20', '0', 'glass');
+INSERT INTO `ewc_level3_subset7` VALUES ('833', '110', '2', '20 02 02', '0', 'soil and stones');
+
+-- ----------------------------
 -- Table structure for workshop_items2
 -- ----------------------------
 DROP TABLE IF EXISTS `workshop_items2`;
@@ -1113,14 +1160,12 @@ CREATE TABLE `workshop_items2` (
   `Frequency` varchar(255) DEFAULT NULL,
   `Remarks` text,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=750 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=35 DEFAULT CHARSET=latin1;
 
 -- ----------------------------
 -- Records of workshop_items2
 -- ----------------------------
-INSERT INTO `workshop_items2` VALUES ('3', 'Turkey', 'A', '2', 'plastic chips: Trimmed , broken scrap plastic', 'plastic chips: Trimmed , broken scrap plastic', 'EN', 'Material', '15 01 02', 'Have', null, null, null, null);
-INSERT INTO `workshop_items2` VALUES ('4', 'Turkey', 'A', '2', 'Pressed scrap metal', 'Pressed scrap metal', 'EN', 'Material', '15 01 04', 'Have', '5', 'tons', 'day', 'Ak Geri Dönü?üm: Can take non-hazardous metal waste;\nÖzvar Endüstriyel At?k: Can give to MKE;\nK?vanç Makine: They need steel scrap material as raw material in melting process;');
-INSERT INTO `workshop_items2` VALUES ('5', 'Turkey', 'A', '2', 'Pressed scrap paper: Waste recycling facilities for paper mills or considered as intermediate products or raw materials', 'Pressed scrap paper: Waste recycling facilities for paper mills or considered as intermediate products or raw materials', 'EN', 'Material', '12 01 03', 'Have', '30', 'tons', 'day', 'ESOGÜ: Wastes as copper can be used for ceramic surface polishing (Doç. Dr. Çelik);');
+INSERT INTO `workshop_items2` VALUES ('34', 'Turkey', 'A', '4', 'Iron and steel scrap', 'Iron and steel scrap', 'EN', 'Material', '16 01 17', 'Have', '40', 'tons', 'year', 'An alternative fuel for use in cement production. Can take 1500-2000 tons / year capacity.');
 
 -- ----------------------------
 -- Table structure for workshop_items2_full
@@ -1893,6 +1938,35 @@ INSERT INTO `workshop_items2_full` VALUES ('746', 'England', 'D', '86', 'Inorgan
 INSERT INTO `workshop_items2_full` VALUES ('747', 'England', 'D', '86', 'Expertise - Regulatory - Expertise in REACH and COMAH. Also ISO14001, ISO9001 and ISO18001', 'Expertise - Regulatory - Expertise in REACH and COMAH. Also ISO14001, ISO9001 and ISO18001', 'EN', 'Service', '99 99 99', 'Have', '1', 'Number', 'per year', null);
 INSERT INTO `workshop_items2_full` VALUES ('748', 'England', 'D', '86', 'Organics - Xylene waste water - Xylene waste containing water and agrochemicals', 'Organics - Xylene waste water - Xylene waste containing water and agrochemicals', 'EN', 'Material', '19 08 99', 'Have', '40', 'Tonnes', 'per year', null);
 INSERT INTO `workshop_items2_full` VALUES ('749', 'England', 'D', '86', 'Capacity - Hydrogeneration Facilities - ', 'Capacity - Hydrogeneration Facilities - ', 'EN', 'Service', '99 99 99', 'Want', '1', 'Number', 'per year', null);
+
+-- ----------------------------
+-- Table structure for workshop_items2_subset3
+-- ----------------------------
+DROP TABLE IF EXISTS `workshop_items2_subset3`;
+CREATE TABLE `workshop_items2_subset3` (
+  `id` bigint(2) NOT NULL AUTO_INCREMENT,
+  `Cluster` varchar(255) DEFAULT NULL,
+  `Workshop` varchar(2) DEFAULT NULL,
+  `Company_ID` bigint(20) DEFAULT NULL,
+  `Waste_description` text,
+  `waste_description_original` varchar(2048) DEFAULT NULL,
+  `language` varchar(20) DEFAULT NULL,
+  `Type` varchar(255) DEFAULT NULL,
+  `Wastecode` varchar(255) DEFAULT NULL,
+  `Have_want` varchar(255) DEFAULT NULL,
+  `Quantity` bigint(20) DEFAULT NULL,
+  `Measure_unit` varchar(255) DEFAULT NULL,
+  `Frequency` varchar(255) DEFAULT NULL,
+  `Remarks` text,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=750 DEFAULT CHARSET=latin1;
+
+-- ----------------------------
+-- Records of workshop_items2_subset3
+-- ----------------------------
+INSERT INTO `workshop_items2_subset3` VALUES ('3', 'Turkey', 'A', '2', 'plastic chips: Trimmed , broken scrap plastic', 'plastic chips: Trimmed , broken scrap plastic', 'EN', 'Material', '15 01 02', 'Have', null, null, null, null);
+INSERT INTO `workshop_items2_subset3` VALUES ('4', 'Turkey', 'A', '2', 'Pressed scrap metal', 'Pressed scrap metal', 'EN', 'Material', '15 01 04', 'Have', '5', 'tons', 'day', 'Ak Geri Dönü?üm: Can take non-hazardous metal waste;\nÖzvar Endüstriyel At?k: Can give to MKE;\nK?vanç Makine: They need steel scrap material as raw material in melting process;');
+INSERT INTO `workshop_items2_subset3` VALUES ('5', 'Turkey', 'A', '2', 'Pressed scrap paper: Waste recycling facilities for paper mills or considered as intermediate products or raw materials', 'Pressed scrap paper: Waste recycling facilities for paper mills or considered as intermediate products or raw materials', 'EN', 'Material', '12 01 03', 'Have', '30', 'tons', 'day', 'ESOGÜ: Wastes as copper can be used for ceramic surface polishing (Doç. Dr. Çelik);');
 
 -- ----------------------------
 -- Table structure for workshop_items2_subset4

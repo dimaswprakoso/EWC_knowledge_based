@@ -88,7 +88,7 @@ def NLP(data):
     words = tokenizer.tokenize(data)
 
     # 2. Remove short words
-    words = [w for w in words if len(w) > 3]
+    words = [w for w in words if len(w) > 2]
 
     # 3. Remove Stopwords # load stopwords from enlgihs language
     stop_words = set(stopwords.words("english"))
@@ -130,11 +130,12 @@ def cos_similarity(item_vec1, item_vec2):
 # ----------------------------------------------------------------------------#
 # Li's sentence similarity
 # ----------------------------------------------------------------------------#
-ALPHA = 0.2
-BETA = 0.45
-ETA = 0.4
-PHI = 0.2
-DELTA = 0.85
+ALPHA = 0.2 #for word similarity calculation, path and length
+BETA = 0.45 #for world similarity calculation, smoothing factor
+ETA = 0.4 #thresh hold in word order vector
+# PHI = 0.2 #thresh hold in semantic vector
+PHI = 0.8
+DELTA = 0.85 #for sentence similarity calculation, represent the importance of semantic similarity
 
 brown_freqs = dict()
 N = 0
@@ -217,6 +218,7 @@ def get_best_synset_pair(word_1, word_2):
         for synset_1 in synsets_1:
             for synset_2 in synsets_2:
                 sim = wn.wup_similarity(synset_1, synset_2, simulate_root=False)
+                # sim = wn.path_similarity(synset_1, synset_2)
                 if sim == None:
                     sim = 0
                 if sim > max_sim:
@@ -257,24 +259,22 @@ def gen_item_vector(data, all_unique_words):
 
     sent_set = set(data)
     joint_words = set(all_unique_words)
-    semvec = np.zeros(len(joint_words))
     i = 0
     for joint_word in joint_words:
         if joint_word in sent_set:
             # if word in union exists in the sentence, s(i) = 1 (unnormalized)
-            semvec[i] = 1.0
+            vec[i] = 1.0
             # if info_content_norm:
-            #     semvec[i] = semvec[i] * math.pow(info_content(joint_word), 2)
+            #     vec[i] = vec[i] * math.pow(info_content(joint_word), 2)
         else:
             # find the most similar word in the joint set and set the sim value
             sim_word, max_sim = most_similar_word(joint_word, sent_set)
-            semvec[i] = max_sim if max_sim > PHI else 0.0
+            vec[i] = max_sim if max_sim > PHI else 0.0
             # if info_content_norm:
-            #     semvec[i] = semvec[i] * info_content(joint_word) * info_content(sim_word)
+            #     vec[i] = vec[i] * info_content(joint_word) * info_content(sim_word)
         i = i + 1
 
     # return list of item vectors
-    vec = semvec.tolist()
     return vec
 
 

@@ -15,11 +15,11 @@ import sys
 
 # Parameters to the algorithm. Currently set to values that was reported
 # in the paper to produce "best" results.
-ALPHA = 0.2
-BETA = 0.45
-ETA = 0.4
-PHI = 0.2
-DELTA = 0.85
+ALPHA = 0.2 #for word similarity calculation, path and length
+BETA = 0.45 #for world similarity calculation, smoothing factor
+ETA = 0.4 #thresh hold in word order vector
+PHI = 0.2 #thresh hold in semantic vector
+DELTA = 0.85 #for sentence similarity calculation, represent the importance of semantic similarity
 
 brown_freqs = dict()
 N = 0

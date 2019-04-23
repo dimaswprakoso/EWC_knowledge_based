@@ -5,7 +5,13 @@ from nltk.corpus import wordnet as wn
 # a.tolist()
 # print(a)
 
-sysnset_1 = wn.synset('cat.n.01')
-sysnset_2 = wn.synset('dog.n.01')
-sim = wn.wup_similarity(sysnset_1,sysnset_2, simulate_root=False)
-print(sim)
+# sysnset_1 = wn.synset('cat.n.01')
+# sysnset_2 = wn.synset('dog.n.01')
+# sim = wn.wup_similarity(sysnset_1,sysnset_2, simulate_root=False)
+# print(sim)
+
+from nltk.stem import WordNetLemmatizer
+
+lemmatizer = WordNetLemmatizer()
+l = lemmatizer.lemmatize("packaging")
+print(l)
