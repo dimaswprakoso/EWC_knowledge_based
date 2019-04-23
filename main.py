@@ -54,6 +54,7 @@ try:
 except mysql.connector.Error as e:
     print("x Failed loading data: {}\n".format(e))
 
+
 # ----------------------------------------------------------------------------#
 # 2. Get items from ewc
 # ----------------------------------------------------------------------------#
@@ -75,6 +76,25 @@ try:
 except mysql.connector.Error as e:
     print("x Failed loading data: {}\n".format(e))
 
+
+# ----------------------------------------------------------------------------#
+# Fill word similarity cache
+# ----------------------------------------------------------------------------#
+sql = """
+SELECT * FROM `wup_word_sim`
+"""
+
+word_sim_cache = {}
+
+try:
+    results = cursor.execute(sql)
+    rows = cursor.fetchall()
+
+    for row in rows:
+        word_sim_cache[row['word1'], row['word2']] = row['similarity']
+
+except mysql.connector.Error as e:
+    print("x Failed loading data: {}\n".format(e))
 
 # ----------------------------------------------------------------------------#
 # Similarity Functions
@@ -245,7 +265,13 @@ def most_similar_word(word, word_set):
     max_sim = -1.0
     sim_word = ""
     for ref_word in word_set:
-        sim = word_similarity(word, ref_word)
+        # sim = word_similarity(word, ref_word)
+        sim = word_sim_cache[word, ref_word]
+        # if (word,ref_word) in word_sim_cache :
+        #     sim = word_sim_cache[word,ref_word]
+        # else:
+        #     sim = word_similarity(word, ref_word)
+
         if sim > max_sim:
             max_sim = sim
             sim_word = ref_word
@@ -413,7 +439,7 @@ def eval_recommendations(ev):
 # 5. Main code
 # ----------------------------------------------------------------------------#
 # --------------- Config -------------------- #
-top_n = 5  # Maximal number of recommendations in the recommendation set.
+top_n = 15  # Maximal number of recommendations in the recommendation set.
 min_sim = 0.1  # higher than zero
 
 ev = {}  # dictionary containing all evaluations of recommendations
