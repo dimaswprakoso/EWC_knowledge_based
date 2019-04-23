@@ -29,6 +29,7 @@ language = 'EN'
 cnx = mysql.connector.connect(user=db_user, database=db_database)
 cursor = cnx.cursor(dictionary=True)
 
+
 # ----------------------------------------------------------------------------#
 # 1. Get items from workshop
 # ----------------------------------------------------------------------------#
@@ -51,6 +52,7 @@ try:
 except mysql.connector.Error as e:
     print("x Failed loading data: {}\n".format(e))
 
+
 # ----------------------------------------------------------------------------#
 # 2. Get items from ewc
 # ----------------------------------------------------------------------------#
@@ -71,6 +73,7 @@ try:
 
 except mysql.connector.Error as e:
     print("x Failed loading data: {}\n".format(e))
+
 
 # ----------------------------------------------------------------------------#
 # 3. Empty table word similarity
@@ -192,6 +195,9 @@ for k, l in ewc_list.items():
 
 word_sim_dict = {}
 
+print("unique words: {}".format(len(all_unique_words)))
+# print("unique words: {}".format(len(all_unique_words)))
+
 for first_word in all_unique_words:
     for second_word in all_unique_words:
         if first_word == second_word:
@@ -206,4 +212,6 @@ for first_word in all_unique_words:
             cnx.commit()
         except mysql.connector.Error as e:
             print("x Failed inserting data: {}\n".format(e))
-print("end")
+
+end = time.time()
+print(end - start)
