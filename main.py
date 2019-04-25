@@ -1,19 +1,17 @@
 import mysql.connector
-import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import RegexpTokenizer
 from nltk.stem import PorterStemmer
+from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.corpus import wordnet as wn
-# from nltk.corpus import brown
 from scipy import spatial
 from collections import OrderedDict
 from operator import itemgetter
 import math
-import numpy as np
 import sys
 import time
 
-##d#
+
 # ----------------------------------------------------------------------------#
 # Configuration
 # ----------------------------------------------------------------------------#
@@ -78,10 +76,10 @@ except mysql.connector.Error as e:
 
 
 # ----------------------------------------------------------------------------#
-# Fill word similarity cache
+# Get word similarity cache
 # ----------------------------------------------------------------------------#
 sql = """
-SELECT * FROM `wup_word_sim`
+SELECT * FROM `word_sim_cache`
 """
 
 word_sim_cache = {}
@@ -127,6 +125,13 @@ def NLP(data):
         stemmed_words.append(ps.stem(w))
 
     data = stemmed_words
+
+    # lm = WordNetLemmatizer()
+    # lemmatized_words = []
+    # for w in words:
+    #     lemmatized_words.append(lm.lemmatize(w))
+    # data = lemmatized_words
+
     return data
 
 
@@ -147,131 +152,11 @@ def cos_similarity(item_vec1, item_vec2):
     return sim
 
 
-# ----------------------------------------------------------------------------#
-# Li's sentence similarity
-# ----------------------------------------------------------------------------#
-ALPHA = 0.2 #for word similarity calculation, path and length
-BETA = 0.45 #for world similarity calculation, smoothing factor
-ETA = 0.4 #thresh hold in word order vector
-# PHI = 0.2 #thresh hold in semantic vector
-PHI = 0.8
-DELTA = 0.85 #for sentence similarity calculation, represent the importance of semantic similarity
-
-brown_freqs = dict()
-N = 0
-
-def length_dist(synset_1, synset_2):
-    """
-    Return a measure of the length of the shortest path in the semantic
-    ontology (Wordnet in our case as well as the paper's) between two
-    synsets.
-    """
-    l_dist = sys.maxsize
-    if synset_1 is None or synset_2 is None:
-        return 0.0
-    if synset_1 == synset_2:
-        # if synset_1 and synset_2 are the same synset return 0
-        l_dist = 0.0
-    else:
-        wset_1 = set([str(x.name()) for x in synset_1.lemmas()])
-        wset_2 = set([str(x.name()) for x in synset_2.lemmas()])
-        if len(wset_1.intersection(wset_2)) > 0:
-            # if synset_1 != synset_2 but there is word overlap, return 1.0
-            l_dist = 1.0
-        else:
-            # just compute the shortest path between the two
-            l_dist = synset_1.shortest_path_distance(synset_2)
-            if l_dist is None:
-                l_dist = 0.0
-    # normalize path length to the range [0,1]
-    return math.exp(-ALPHA * l_dist)
-
-
-def hierarchy_dist(synset_1, synset_2):
-    """
-    Return a measure of depth in the ontology to model the fact that
-    nodes closer to the root are broader and have less semantic similarity
-    than nodes further away from the root.
-    """
-    h_dist = sys.maxsize
-    if synset_1 is None or synset_2 is None:
-        return h_dist
-    if synset_1 == synset_2:
-        # return the depth of one of synset_1 or synset_2
-        h_dist = max([x[1] for x in synset_1.hypernym_distances()])
-    else:
-        # find the max depth of least common subsumer
-        hypernyms_1 = {x[0]: x[1] for x in synset_1.hypernym_distances()}
-        hypernyms_2 = {x[0]: x[1] for x in synset_2.hypernym_distances()}
-        lcs_candidates = set(hypernyms_1.keys()).intersection(
-            set(hypernyms_2.keys()))
-        if len(lcs_candidates) > 0:
-            lcs_dists = []
-            for lcs_candidate in lcs_candidates:
-                lcs_d1 = 0
-                if lcs_candidate in hypernyms_1:
-                    lcs_d1 = hypernyms_1[lcs_candidate]
-                lcs_d2 = 0
-                if lcs_candidate in hypernyms_2:
-                    lcs_d2 = hypernyms_2[lcs_candidate]
-                lcs_dists.append(max([lcs_d1, lcs_d2]))
-            h_dist = max(lcs_dists)
-        else:
-            h_dist = 0
-    return ((math.exp(BETA * h_dist) - math.exp(-BETA * h_dist)) /
-            (math.exp(BETA * h_dist) + math.exp(-BETA * h_dist)))
-
-
-def get_best_synset_pair(word_1, word_2):
-    """
-    Choose the pair with highest path similarity among all pairs.
-    Mimics pattern-seeking behavior of humans.
-    """
-    max_sim = -1.0
-    synsets_1 = wn.synsets(word_1)
-    synsets_2 = wn.synsets(word_2)
-    if len(synsets_1) == 0 or len(synsets_2) == 0:
-        return None, None, 0.0
-    else:
-        max_sim = -1.0
-        best_pair = None, None
-        for synset_1 in synsets_1:
-            for synset_2 in synsets_2:
-                sim = wn.wup_similarity(synset_1, synset_2, simulate_root=False)
-                # sim = wn.path_similarity(synset_1, synset_2)
-                if sim == None:
-                    sim = 0
-                if sim > max_sim:
-                    max_sim = sim
-                    best_pair = synset_1, synset_2, max_sim
-        return best_pair
-        # return synsets_1[0], synsets_2[0]
-
-
-def word_similarity(word_1, word_2):
-    synset_pair = get_best_synset_pair(word_1, word_2)
-    # return (length_dist(synset_pair[0], synset_pair[1]) *
-    #         hierarchy_dist(synset_pair[0], synset_pair[1]))
-    return synset_pair[2]
-
-
 def most_similar_word(word, word_set):
-    """
-    Find the word in the joint word set that is most similar to the word
-    passed in. We use the algorithm above to compute word similarity between
-    the word and each word in the joint word set, and return the most similar
-    word and the actual similarity value.
-    """
     max_sim = -1.0
     sim_word = ""
     for ref_word in word_set:
-        # sim = word_similarity(word, ref_word)
         sim = word_sim_cache[word, ref_word]
-        # if (word,ref_word) in word_sim_cache :
-        #     sim = word_sim_cache[word,ref_word]
-        # else:
-        #     sim = word_similarity(word, ref_word)
-
         if sim > max_sim:
             max_sim = sim
             sim_word = ref_word
@@ -439,7 +324,7 @@ def eval_recommendations(ev):
 # 5. Main code
 # ----------------------------------------------------------------------------#
 # --------------- Config -------------------- #
-top_n = 15  # Maximal number of recommendations in the recommendation set.
+top_n = 5  # Maximal number of recommendations in the recommendation set.
 min_sim = 0.1  # higher than zero
 
 ev = {}  # dictionary containing all evaluations of recommendations
@@ -447,6 +332,7 @@ ewc_words = {}  # bag of words from the ewc description
 item_words = {}  # bag of words from the item description
 rec = {}  # dictionary containing the recommendations for an item desc
 sim_matrix = {}  # the similarity matrix between the vectors of ewc desc and item desc
+PHI = 0.8 #word similarity threshold
 # --------------- End Config ---------------- #
 
 
