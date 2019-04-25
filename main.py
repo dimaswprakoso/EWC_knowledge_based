@@ -173,16 +173,12 @@ def gen_item_vector(data, all_unique_words):
     i = 0
     for joint_word in joint_words:
         if joint_word in sent_set:
-            # if word in union exists in the sentence, s(i) = 1 (unnormalized)
+            # if word in union exists in the sentence, set vector element to 1
             vec[i] = 1.0
-            # if info_content_norm:
-            #     vec[i] = vec[i] * math.pow(info_content(joint_word), 2)
         else:
             # find the most similar word in the joint set and set the sim value
             sim_word, max_sim = most_similar_word(joint_word, sent_set)
             vec[i] = max_sim if max_sim > PHI else 0.0
-            # if info_content_norm:
-            #     vec[i] = vec[i] * info_content(joint_word) * info_content(sim_word)
         i = i + 1
 
     # return list of item vectors
