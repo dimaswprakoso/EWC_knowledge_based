@@ -1,22 +1,16 @@
 import mysql.connector
-import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import RegexpTokenizer
 from nltk.stem import PorterStemmer
+from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.corpus import wordnet as wn
-# from nltk.corpus import brown
-from scipy import spatial
-from collections import OrderedDict
-from operator import itemgetter
-import math
-import numpy as np
-import sys
+
 import time
 
 # ----------------------------------------------------------------------------#
 # Configuration
 # ----------------------------------------------------------------------------#
-start = time.time()
+# start = time.time()
 
 db_user = 'root'
 db_database = 'sharebox'
@@ -78,7 +72,7 @@ except mysql.connector.Error as e:
 # ----------------------------------------------------------------------------#
 # 3. Empty table word similarity
 # ----------------------------------------------------------------------------#
-sql = "TRUNCATE TABLE wup_word_sim"
+sql = "TRUNCATE TABLE word_sim_cache"
 try:
     cursor.execute(sql)
     cnx.commit()
@@ -116,8 +110,14 @@ def NLP(data):
     stemmed_words = []
     for w in words:
         stemmed_words.append(ps.stem(w))
-
     data = stemmed_words
+
+    # lm = WordNetLemmatizer()
+    # lemmatized_words = []
+    # for w in words:
+    #     lemmatized_words.append(lm.lemmatize(w))
+    # data = lemmatized_words
+
     return data
 
 
@@ -134,15 +134,12 @@ def find_unique_words(data, data2):
 
 def word_similarity(word_1, word_2):
     synset_pair = get_best_synset_pair(word_1, word_2)
-    # return (length_dist(synset_pair[0], synset_pair[1]) *
-    #         hierarchy_dist(synset_pair[0], synset_pair[1]))
     return synset_pair[2]
 
 
 def get_best_synset_pair(word_1, word_2):
     """
     Choose the pair with highest path similarity among all pairs.
-    Mimics pattern-seeking behavior of humans.
     """
     max_sim = -1.0
     synsets_1 = wn.synsets(word_1)
@@ -154,24 +151,29 @@ def get_best_synset_pair(word_1, word_2):
         best_pair = None, None
         for synset_1 in synsets_1:
             for synset_2 in synsets_2:
-                sim = wn.wup_similarity(synset_1, synset_2, simulate_root=False)
-                # sim = wn.path_similarity(synset_1, synset_2)
+                if (synset_1._pos != synset_2._pos):
+                    sim = wn.wup_similarity(synset_1, synset_2, simulate_root=False)
+                else:
+                    sim = 0
+                # sim = wn.wup_similarity(synset_1, synset_2)
                 if sim == None:
                     sim = 0
                 if sim > max_sim:
                     max_sim = sim
                     best_pair = synset_1, synset_2, max_sim
         return best_pair
-        # return synsets_1[0], synsets_2[0]
 
 
 # ----------------------------------------------------------------------------#
 # Main code
 # ----------------------------------------------------------------------------#
+# --------------- Config -------------------- #
 ewc_words = {}  # bag of words from the ewc description
 item_words = {}  # bag of words from the item description
 all_unique_words = []
+# --------------- End Config ---------------- #
 
+# Prepare the item_desc
 for i, j in item_list.items():
     # clean EWC data
     item_ewc = j[1].strip()
@@ -195,8 +197,9 @@ for k, l in ewc_list.items():
 
 word_sim_dict = {}
 
+
+#build word similarity cache
 print("unique words: {}".format(len(all_unique_words)))
-# print("unique words: {}".format(len(all_unique_words)))
 
 for first_word in all_unique_words:
     for second_word in all_unique_words:
@@ -204,14 +207,15 @@ for first_word in all_unique_words:
             word_sim = 1
         else:
             word_sim = word_similarity(first_word, second_word)
-        # word_sim_dict[first_word, second_word] = word_sim
 
-        sql = 'INSERT INTO wup_word_sim(word1, word2, similarity) VALUES ("{}","{}",{})'.format (first_word,second_word, word_sim)
+        sql = 'INSERT INTO word_sim_cache(word1, word2, similarity) VALUES ("{}","{}",{})'.format (first_word,second_word, word_sim)
+
         try:
             cursor.execute(sql)
             cnx.commit()
         except mysql.connector.Error as e:
             print("x Failed inserting data: {}\n".format(e))
 
-end = time.time()
-print(end - start)
+# end = time.time()
+# print(end - start)
+
