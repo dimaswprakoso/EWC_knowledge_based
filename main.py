@@ -119,18 +119,17 @@ def NLP(data):
     words = [w for w in words if not w in term_list]  # for each word check if
 
     # 5. Find Stem # Porter Stemmer
-    ps = PorterStemmer()
-    stemmed_words = []
-    for w in words:
-        stemmed_words.append(ps.stem(w))
-
-    data = stemmed_words
-
-    # lm = WordNetLemmatizer()
-    # lemmatized_words = []
+    # ps = PorterStemmer()
+    # stemmed_words = []
     # for w in words:
-    #     lemmatized_words.append(lm.lemmatize(w))
-    # data = lemmatized_words
+    #     stemmed_words.append(ps.stem(w))
+    # data = stemmed_words
+
+    lm = WordNetLemmatizer()
+    lemmatized_words = []
+    for w in words:
+        lemmatized_words.append(lm.lemmatize(w))
+    data = lemmatized_words
 
     return data
 
@@ -320,7 +319,7 @@ def eval_recommendations(ev):
 # 5. Main code
 # ----------------------------------------------------------------------------#
 # --------------- Config -------------------- #
-top_n = 5  # Maximal number of recommendations in the recommendation set.
+top_n = 15 # Maximal number of recommendations in the recommendation set.
 min_sim = 0.1  # higher than zero
 
 ev = {}  # dictionary containing all evaluations of recommendations
@@ -351,6 +350,7 @@ for i, j in item_list.items():
 # prepare the ewc_desc
 for k, l in ewc_list.items():
     ewc_words[k] = NLP(l[0])
+
 
 # for all items
 for m, n in item_list.items():
