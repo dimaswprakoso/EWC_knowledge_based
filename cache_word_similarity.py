@@ -74,7 +74,7 @@ except mysql.connector.Error as e:
 # ----------------------------------------------------------------------------#
 # 3. Empty table word similarity
 # ----------------------------------------------------------------------------#
-sql = "TRUNCATE TABLE word_sim_wup_stem_same_pos"
+sql = "TRUNCATE TABLE word_sim_wup_lemma_same_pos"
 try:
     cursor.execute(sql)
     cnx.commit()
@@ -108,17 +108,17 @@ def NLP(data):
     words = [w for w in words if not w in term_list]  # for each word check if
 
     # 5. Find Stem # Porter Stemmer
-    ps = PorterStemmer()
-    stemmed_words = []
-    for w in words:
-        stemmed_words.append(ps.stem(w))
-    data = stemmed_words
-
-    # lm = WordNetLemmatizer()
-    # lemmatized_words = []
+    # ps = PorterStemmer()
+    # stemmed_words = []
     # for w in words:
-    #     lemmatized_words.append(lm.lemmatize(w))
-    # data = lemmatized_words
+    #     stemmed_words.append(ps.stem(w))
+    # data = stemmed_words
+
+    lm = WordNetLemmatizer()
+    lemmatized_words = []
+    for w in words:
+        lemmatized_words.append(lm.lemmatize(w))
+    data = lemmatized_words
 
     return data
 
@@ -147,7 +147,7 @@ def get_best_synset_pair(word_1, word_2):
                     sim = 0
                 else:
                     # sim = wn.lin_similarity(synset_1, synset_2, brown_ic)
-                    sim = wn.wup_similarity(synset_1, synset_2, simulate_root=False)
+                    sim = wn.wup_similarity(synset_1, synset_2)
                 if sim == None:
                     sim = 0
                 if sim > max_sim:
@@ -163,7 +163,7 @@ def get_best_synset_pair(word_1, word_2):
 ewc_words = {}  # bag of words from the ewc description
 item_words = {}  # bag of words from the item description
 all_unique_words = []
-brown_ic = wn.ic(brown, False, 0.0)
+# brown_ic = wn.ic(brown, False, 0.0)
 # --------------- End Config ---------------- #
 
 # Prepare the item_desc
@@ -201,7 +201,7 @@ for first_word in all_unique_words:
         else:
             word_sim = word_similarity(first_word, second_word)
 
-        sql = 'INSERT INTO word_sim_wup_stem_same_pos(word1, word2, similarity) VALUES ("{}","{}",{})'.format (first_word,second_word, word_sim)
+        sql = 'INSERT INTO word_sim_wup_lemma_same_pos(word1, word2, similarity) VALUES ("{}","{}",{})'.format (first_word,second_word, word_sim)
 
         try:
             cursor.execute(sql)
