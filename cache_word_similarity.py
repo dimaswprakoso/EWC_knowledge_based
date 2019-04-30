@@ -4,13 +4,15 @@ from nltk.tokenize import RegexpTokenizer
 from nltk.stem import PorterStemmer
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.corpus import wordnet as wn
+from nltk.corpus import brown
+
 
 import time
 
 # ----------------------------------------------------------------------------#
 # Configuration
 # ----------------------------------------------------------------------------#
-# start = time.time()
+start = time.time()
 
 db_user = 'root'
 db_database = 'sharebox'
@@ -72,7 +74,7 @@ except mysql.connector.Error as e:
 # ----------------------------------------------------------------------------#
 # 3. Empty table word similarity
 # ----------------------------------------------------------------------------#
-sql = "TRUNCATE TABLE word_sim_cache"
+sql = "TRUNCATE TABLE word_sim_wup_stem_same_pos"
 try:
     cursor.execute(sql)
     cnx.commit()
@@ -121,17 +123,6 @@ def NLP(data):
     return data
 
 
-def find_unique_words(data, data2):
-    # merge words from all items, then remove duplicates with set datatype
-    all_unique_words = []
-    all_unique_words = list(set(all_unique_words + data))
-
-    for i, j in data2.items():
-        all_unique_words = list(set(all_unique_words + j))
-
-    return all_unique_words
-
-
 def word_similarity(word_1, word_2):
     synset_pair = get_best_synset_pair(word_1, word_2)
     return synset_pair[2]
@@ -151,11 +142,12 @@ def get_best_synset_pair(word_1, word_2):
         best_pair = None, None
         for synset_1 in synsets_1:
             for synset_2 in synsets_2:
+                # if synset_1._pos != synset_2._pos or synset_1._pos == 's' or synset_2._pos == 's':
                 if (synset_1._pos != synset_2._pos):
-                    sim = wn.wup_similarity(synset_1, synset_2, simulate_root=False)
-                else:
                     sim = 0
-                # sim = wn.wup_similarity(synset_1, synset_2)
+                else:
+                    # sim = wn.lin_similarity(synset_1, synset_2, brown_ic)
+                    sim = wn.wup_similarity(synset_1, synset_2, simulate_root=False)
                 if sim == None:
                     sim = 0
                 if sim > max_sim:
@@ -171,6 +163,7 @@ def get_best_synset_pair(word_1, word_2):
 ewc_words = {}  # bag of words from the ewc description
 item_words = {}  # bag of words from the item description
 all_unique_words = []
+brown_ic = wn.ic(brown, False, 0.0)
 # --------------- End Config ---------------- #
 
 # Prepare the item_desc
@@ -208,7 +201,7 @@ for first_word in all_unique_words:
         else:
             word_sim = word_similarity(first_word, second_word)
 
-        sql = 'INSERT INTO word_sim_cache(word1, word2, similarity) VALUES ("{}","{}",{})'.format (first_word,second_word, word_sim)
+        sql = 'INSERT INTO word_sim_wup_stem_same_pos(word1, word2, similarity) VALUES ("{}","{}",{})'.format (first_word,second_word, word_sim)
 
         try:
             cursor.execute(sql)
@@ -216,6 +209,6 @@ for first_word in all_unique_words:
         except mysql.connector.Error as e:
             print("x Failed inserting data: {}\n".format(e))
 
-# end = time.time()
-# print(end - start)
+end = time.time()
+print(end - start)
 
