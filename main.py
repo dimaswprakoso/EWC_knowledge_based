@@ -79,17 +79,26 @@ except mysql.connector.Error as e:
 # Get word similarity cache
 # ----------------------------------------------------------------------------#
 sql = """
-SELECT * FROM `word_sim_cache`
+SELECT * FROM `word_sim_wup_stem_same_pos`
 """
 
+# sql_ic = """
+# SELECT * FROM `information_content_lemma`
+# """
+
 word_sim_cache = {}
+# ic_cache = {}
 
 try:
     results = cursor.execute(sql)
     rows = cursor.fetchall()
-
     for row in rows:
         word_sim_cache[row['word1'], row['word2']] = row['similarity']
+
+    # results = cursor.execute(sql_ic)
+    # rows = cursor.fetchall()
+    # for row in rows:
+    #     ic_cache[row['word1']] = row['ic']
 
 except mysql.connector.Error as e:
     print("x Failed loading data: {}\n".format(e))
@@ -119,17 +128,17 @@ def NLP(data):
     words = [w for w in words if not w in term_list]  # for each word check if
 
     # 5. Find Stem # Porter Stemmer
-    # ps = PorterStemmer()
-    # stemmed_words = []
-    # for w in words:
-    #     stemmed_words.append(ps.stem(w))
-    # data = stemmed_words
-
-    lm = WordNetLemmatizer()
-    lemmatized_words = []
+    ps = PorterStemmer()
+    stemmed_words = []
     for w in words:
-        lemmatized_words.append(lm.lemmatize(w))
-    data = lemmatized_words
+        stemmed_words.append(ps.stem(w))
+    data = stemmed_words
+
+    # lm = WordNetLemmatizer()
+    # lemmatized_words = []
+    # for w in words:
+    #     lemmatized_words.append(lm.lemmatize(w))
+    # data = lemmatized_words
 
     return data
 
@@ -174,10 +183,12 @@ def gen_item_vector(data, all_unique_words):
         if joint_word in sent_set:
             # if word in union exists in the sentence, set vector element to 1
             vec[i] = 1.0
+            # vec[i] = vec[i] * math.pow(ic_cache[joint_word], 2)
         else:
             # find the most similar word in the joint set and set the sim value
             sim_word, max_sim = most_similar_word(joint_word, sent_set)
             vec[i] = max_sim if max_sim > PHI else 0.0
+            # vec[i] = (max_sim * ic_cache[joint_word] * ic_cache[sim_word]) if max_sim > PHI else 0.0
         i = i + 1
 
     # return list of item vectors
@@ -319,7 +330,7 @@ def eval_recommendations(ev):
 # 5. Main code
 # ----------------------------------------------------------------------------#
 # --------------- Config -------------------- #
-top_n = 15 # Maximal number of recommendations in the recommendation set.
+top_n = 5 # Maximal number of recommendations in the recommendation set.
 min_sim = 0.1  # higher than zero
 
 ev = {}  # dictionary containing all evaluations of recommendations
