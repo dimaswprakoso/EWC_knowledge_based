@@ -74,7 +74,7 @@ except mysql.connector.Error as e:
 # ----------------------------------------------------------------------------#
 # 3. Empty table word similarity
 # ----------------------------------------------------------------------------#
-sql = "TRUNCATE TABLE word_sim_wup_lemma_same_pos"
+sql = "TRUNCATE TABLE word_sim_cache"
 try:
     cursor.execute(sql)
     cnx.commit()
@@ -102,9 +102,9 @@ def NLP(data):
     words = [w for w in words if not w in stop_words]  # for each word check if
 
     # 4 Remove common terminology in waste listings e.g. (waste)
-    term_list = ['waste', 'process', 'consultancy', 'advice', 'training', 'service', 'managing', 'management',
-                 'recycling', 'recycle', 'industry', 'industrial', 'material', 'quantity', 'support', 'residue',
-                 'organic', 'remainder']
+    term_list = ['waste', 'wastes', 'scrap', 'scraps' 'process', 'consultancy', 'advice', 'training', 'service', 'managing',
+                 'management', 'recycling', 'recycle', 'industry', 'industrial', 'material', 'quantity', 'support',
+                 'residue', 'organic', 'remainder']
     words = [w for w in words if not w in term_list]  # for each word check if
 
     # 5. Find Stem # Porter Stemmer
@@ -143,7 +143,8 @@ def get_best_synset_pair(word_1, word_2):
         for synset_1 in synsets_1:
             for synset_2 in synsets_2:
                 # if synset_1._pos != synset_2._pos or synset_1._pos == 's' or synset_2._pos == 's':
-                if (synset_1._pos != synset_2._pos):
+                # if (synset_1._pos != synset_2._pos):
+                if (synset_1._pos != synset_2._pos or synset_1._pos != 'n' or synset_2._pos != 'n'):
                     sim = 0
                 else:
                     # sim = wn.lin_similarity(synset_1, synset_2, brown_ic)
@@ -201,7 +202,7 @@ for first_word in all_unique_words:
         else:
             word_sim = word_similarity(first_word, second_word)
 
-        sql = 'INSERT INTO word_sim_wup_lemma_same_pos(word1, word2, similarity) VALUES ("{}","{}",{})'.format (first_word,second_word, word_sim)
+        sql = 'INSERT INTO word_sim_cache(word1, word2, similarity) VALUES ("{}","{}",{})'.format (first_word,second_word, word_sim)
 
         try:
             cursor.execute(sql)

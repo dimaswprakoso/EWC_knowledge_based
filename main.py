@@ -11,7 +11,6 @@ import math
 import sys
 import time
 
-
 # ----------------------------------------------------------------------------#
 # Configuration
 # ----------------------------------------------------------------------------#
@@ -21,14 +20,12 @@ db_user = 'root'
 db_database = 'sharebox'
 language = 'EN'
 
-
 # ----------------------------------------------------------------------------#
 # 0. Initialize
 # ----------------------------------------------------------------------------#
 # Mysql Connection
 cnx = mysql.connector.connect(user=db_user, database=db_database)
 cursor = cnx.cursor(dictionary=True)
-
 
 # ----------------------------------------------------------------------------#
 # 1. Get items from workshop
@@ -52,7 +49,6 @@ try:
 except mysql.connector.Error as e:
     print("x Failed loading data: {}\n".format(e))
 
-
 # ----------------------------------------------------------------------------#
 # 2. Get items from ewc
 # ----------------------------------------------------------------------------#
@@ -74,12 +70,11 @@ try:
 except mysql.connector.Error as e:
     print("x Failed loading data: {}\n".format(e))
 
-
 # ----------------------------------------------------------------------------#
 # Get word similarity cache
 # ----------------------------------------------------------------------------#
 sql = """
-SELECT * FROM `word_sim_wup_stem_same_pos`
+SELECT * FROM `word_sim_cache`
 """
 
 # sql_ic = """
@@ -103,6 +98,7 @@ try:
 except mysql.connector.Error as e:
     print("x Failed loading data: {}\n".format(e))
 
+
 # ----------------------------------------------------------------------------#
 # Similarity Functions
 # ----------------------------------------------------------------------------#
@@ -122,23 +118,23 @@ def NLP(data):
     words = [w for w in words if not w in stop_words]  # for each word check if
 
     # 4 Remove common terminology in waste listings e.g. (waste)
-    term_list = ['waste', 'process', 'consultancy', 'advice', 'training', 'service', 'managing', 'management',
-                 'recycling', 'recycle', 'industry', 'industrial', 'material', 'quantity', 'support', 'residue',
-                 'organic', 'remainder']
+    term_list = ['waste', 'wastes', 'scrap', 'scraps', 'process', 'consultancy', 'advice', 'training', 'service', 'managing',
+                 'management', 'recycling', 'recycle', 'industry', 'industrial', 'material', 'quantity', 'support',
+                 'residue', 'organic', 'remainder']
     words = [w for w in words if not w in term_list]  # for each word check if
 
     # 5. Find Stem # Porter Stemmer
-    ps = PorterStemmer()
-    stemmed_words = []
-    for w in words:
-        stemmed_words.append(ps.stem(w))
-    data = stemmed_words
-
-    # lm = WordNetLemmatizer()
-    # lemmatized_words = []
+    # ps = PorterStemmer()
+    # stemmed_words = []
     # for w in words:
-    #     lemmatized_words.append(lm.lemmatize(w))
-    # data = lemmatized_words
+    #     stemmed_words.append(ps.stem(w))
+    # data = stemmed_words
+
+    lm = WordNetLemmatizer()
+    lemmatized_words = []
+    for w in words:
+        lemmatized_words.append(lm.lemmatize(w))
+    data = lemmatized_words
 
     return data
 
@@ -176,17 +172,17 @@ def gen_item_vector(data, all_unique_words):
     vec = {}
     vec = [0] * len(all_unique_words)
 
-    sent_set = set(data)
-    joint_words = set(all_unique_words)
+    # sent_set = set(data)
+    # joint_words = set(all_unique_words)
     i = 0
-    for joint_word in joint_words:
-        if joint_word in sent_set:
+    for word in all_unique_words:
+        if word in data:
             # if word in union exists in the sentence, set vector element to 1
             vec[i] = 1.0
             # vec[i] = vec[i] * math.pow(ic_cache[joint_word], 2)
         else:
             # find the most similar word in the joint set and set the sim value
-            sim_word, max_sim = most_similar_word(joint_word, sent_set)
+            sim_word, max_sim = most_similar_word(word, data)
             vec[i] = max_sim if max_sim > PHI else 0.0
             # vec[i] = (max_sim * ic_cache[joint_word] * ic_cache[sim_word]) if max_sim > PHI else 0.0
         i = i + 1
@@ -195,12 +191,10 @@ def gen_item_vector(data, all_unique_words):
     return vec
 
 
-
 # ----------------------------------------------------------------------------#
 # 3. Recommendation
 # ----------------------------------------------------------------------------#
 def recommend(item_desc, ewc_words):
-
     item_vec1 = {}
     item_vec2 = {}
     sim_list = {}
@@ -212,7 +206,7 @@ def recommend(item_desc, ewc_words):
     for k, l in ewc_words.items():
         # Lets do some matching -->
         # build vector dimension by joining item description and current ewc only, not the whole ewc catalog
-        uw = find_unique_words(item_desc, {k:l})
+        uw = find_unique_words(item_desc, {k: l})
         item_vec1[it] = gen_item_vector(l, uw)  # ewc code vector
         item_vec2[it] = gen_item_vector(item_desc, uw)  # item desc vector
 
@@ -330,7 +324,7 @@ def eval_recommendations(ev):
 # 5. Main code
 # ----------------------------------------------------------------------------#
 # --------------- Config -------------------- #
-top_n = 5 # Maximal number of recommendations in the recommendation set.
+top_n = 10  # Maximal number of recommendations in the recommendation set.
 min_sim = 0.1  # higher than zero
 
 ev = {}  # dictionary containing all evaluations of recommendations
@@ -338,7 +332,7 @@ ewc_words = {}  # bag of words from the ewc description
 item_words = {}  # bag of words from the item description
 rec = {}  # dictionary containing the recommendations for an item desc
 sim_matrix = {}  # the similarity matrix between the vectors of ewc desc and item desc
-PHI = 0.8 #word similarity threshold
+PHI = 0.9  # word similarity threshold
 # --------------- End Config ---------------- #
 
 
@@ -362,7 +356,6 @@ for i, j in item_list.items():
 for k, l in ewc_list.items():
     ewc_words[k] = NLP(l[0])
 
-
 # for all items
 for m, n in item_list.items():
     # Generate the similarity matrix
@@ -381,5 +374,3 @@ print(results)
 
 end = time.time()
 print(end - start)
-
-
