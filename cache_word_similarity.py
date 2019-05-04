@@ -6,7 +6,6 @@ from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.corpus import wordnet as wn
 from nltk.corpus import brown
 
-
 import time
 
 # ----------------------------------------------------------------------------#
@@ -24,7 +23,6 @@ language = 'EN'
 # Mysql Connection
 cnx = mysql.connector.connect(user=db_user, database=db_database)
 cursor = cnx.cursor(dictionary=True)
-
 
 # ----------------------------------------------------------------------------#
 # 1. Get items from workshop
@@ -48,7 +46,6 @@ try:
 except mysql.connector.Error as e:
     print("x Failed loading data: {}\n".format(e))
 
-
 # ----------------------------------------------------------------------------#
 # 2. Get items from ewc
 # ----------------------------------------------------------------------------#
@@ -69,7 +66,6 @@ try:
 
 except mysql.connector.Error as e:
     print("x Failed loading data: {}\n".format(e))
-
 
 # ----------------------------------------------------------------------------#
 # 3. Empty table word similarity
@@ -102,23 +98,23 @@ def NLP(data):
     words = [w for w in words if not w in stop_words]  # for each word check if
 
     # 4 Remove common terminology in waste listings e.g. (waste)
-    term_list = ['waste', 'wastes', 'scrap', 'scraps' 'process', 'consultancy', 'advice', 'training', 'service', 'managing',
-                 'management', 'recycling', 'recycle', 'industry', 'industrial', 'material', 'quantity', 'support',
-                 'residue', 'organic', 'remainder']
+    term_list = ['waste', 'wastes', 'scrap', 'scraps' 'process', 'consultancy', 'advice', 'training', 'service',
+                 'managing', 'management', 'recycling', 'recycle', 'industry', 'industrial', 'material', 'quantity',
+                 'support', 'residue', 'organic', 'remainder']
     words = [w for w in words if not w in term_list]  # for each word check if
 
     # 5. Find Stem # Porter Stemmer
-    # ps = PorterStemmer()
-    # stemmed_words = []
-    # for w in words:
-    #     stemmed_words.append(ps.stem(w))
-    # data = stemmed_words
-
-    lm = WordNetLemmatizer()
-    lemmatized_words = []
+    ps = PorterStemmer()
+    stemmed_words = []
     for w in words:
-        lemmatized_words.append(lm.lemmatize(w))
-    data = lemmatized_words
+        stemmed_words.append(ps.stem(w))
+    data = stemmed_words
+
+    # lm = WordNetLemmatizer()
+    # lemmatized_words = []
+    # for w in words:
+    #     lemmatized_words.append(lm.lemmatize(w))
+    # data = lemmatized_words
 
     return data
 
@@ -142,9 +138,11 @@ def get_best_synset_pair(word_1, word_2):
         best_pair = None, None
         for synset_1 in synsets_1:
             for synset_2 in synsets_2:
-                # if synset_1._pos != synset_2._pos or synset_1._pos == 's' or synset_2._pos == 's':
-                # if (synset_1._pos != synset_2._pos):
-                if (synset_1._pos != synset_2._pos or synset_1._pos != 'n' or synset_2._pos != 'n'):
+
+                # ignore if both senses are from different POS or not Noun type
+                # if synset_1._pos != synset_2._pos or synset_1._pos == 's' or synset_2._pos == 's
+                # if (synset_1._pos != synset_2._pos or synset_1._pos != 'n' or synset_2._pos != 'n'):
+                if (synset_1._pos != synset_2._pos):
                     sim = 0
                 else:
                     # sim = wn.lin_similarity(synset_1, synset_2, brown_ic)
@@ -191,10 +189,10 @@ for k, l in ewc_list.items():
 
 word_sim_dict = {}
 
-
-#build word similarity cache
+# build word similarity cache
 print("unique words: {}".format(len(all_unique_words)))
 
+rows = []
 for first_word in all_unique_words:
     for second_word in all_unique_words:
         if first_word == second_word:
@@ -202,14 +200,16 @@ for first_word in all_unique_words:
         else:
             word_sim = word_similarity(first_word, second_word)
 
-        sql = 'INSERT INTO word_sim_cache(word1, word2, similarity) VALUES ("{}","{}",{})'.format (first_word,second_word, word_sim)
+        row = (first_word, second_word, word_sim)
+        rows.append(row)
 
-        try:
-            cursor.execute(sql)
-            cnx.commit()
-        except mysql.connector.Error as e:
-            print("x Failed inserting data: {}\n".format(e))
+        # sql = 'INSERT INTO word_sim_cache(word1, word2, similarity) VALUES ("{}","{}",{})'.format (first_word,second_word, word_sim)
+sql = """INSERT INTO word_sim_cache(word1, word2, similarity) VALUES (%s, %s, %s)"""
+try:
+    cursor.executemany(sql, rows)
+    cnx.commit()
+except mysql.connector.Error as e:
+    print("x Failed inserting data: {}\n".format(e))
 
 end = time.time()
 print(end - start)
-

@@ -10,10 +10,12 @@ from operator import itemgetter
 import math
 import sys
 import time
+import result_log as logging
 
 # ----------------------------------------------------------------------------#
 # Configuration
 # ----------------------------------------------------------------------------#
+log = {}
 start = time.time()
 
 db_user = 'root'
@@ -74,7 +76,7 @@ except mysql.connector.Error as e:
 # Get word similarity cache
 # ----------------------------------------------------------------------------#
 sql = """
-SELECT * FROM `word_sim_cache`
+SELECT * FROM `word_sim_wup_stem_noun`
 """
 
 # sql_ic = """
@@ -118,23 +120,23 @@ def NLP(data):
     words = [w for w in words if not w in stop_words]  # for each word check if
 
     # 4 Remove common terminology in waste listings e.g. (waste)
-    term_list = ['waste', 'wastes', 'scrap', 'scraps', 'process', 'consultancy', 'advice', 'training', 'service', 'managing',
-                 'management', 'recycling', 'recycle', 'industry', 'industrial', 'material', 'quantity', 'support',
-                 'residue', 'organic', 'remainder']
+    term_list = ['waste', 'wastes', 'scrap', 'scraps' 'process', 'consultancy', 'advice', 'training', 'service',
+                 'managing', 'management', 'recycling', 'recycle', 'industry', 'industrial', 'material', 'quantity',
+                 'support', 'residue', 'organic', 'remainder']
     words = [w for w in words if not w in term_list]  # for each word check if
 
     # 5. Find Stem # Porter Stemmer
-    # ps = PorterStemmer()
-    # stemmed_words = []
-    # for w in words:
-    #     stemmed_words.append(ps.stem(w))
-    # data = stemmed_words
-
-    lm = WordNetLemmatizer()
-    lemmatized_words = []
+    ps = PorterStemmer()
+    stemmed_words = []
     for w in words:
-        lemmatized_words.append(lm.lemmatize(w))
-    data = lemmatized_words
+        stemmed_words.append(ps.stem(w))
+    data = stemmed_words
+
+    # lm = WordNetLemmatizer()
+    # lemmatized_words = []
+    # for w in words:
+    #     lemmatized_words.append(lm.lemmatize(w))
+    # data = lemmatized_words
 
     return data
 
@@ -324,15 +326,19 @@ def eval_recommendations(ev):
 # 5. Main code
 # ----------------------------------------------------------------------------#
 # --------------- Config -------------------- #
+PHI = 0.8  # word similarity threshold
 top_n = 10  # Maximal number of recommendations in the recommendation set.
 min_sim = 0.1  # higher than zero
+
+test_type = 'wup-stem'
+pos = 'noun'
+
 
 ev = {}  # dictionary containing all evaluations of recommendations
 ewc_words = {}  # bag of words from the ewc description
 item_words = {}  # bag of words from the item description
 rec = {}  # dictionary containing the recommendations for an item desc
 sim_matrix = {}  # the similarity matrix between the vectors of ewc desc and item desc
-PHI = 0.9  # word similarity threshold
 # --------------- End Config ---------------- #
 
 
@@ -374,3 +380,6 @@ print(results)
 
 end = time.time()
 print(end - start)
+log = {'test_type':test_type, 'pos':pos, 'wordsim_th':PHI, 'top_n':top_n, 'duration':end}
+log.update(results)
+logging.log_result(log)
