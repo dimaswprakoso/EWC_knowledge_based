@@ -1,23 +1,21 @@
 import mysql.connector
+import datetime
+
 from nltk.corpus import stopwords
 from nltk.tokenize import RegexpTokenizer
 from nltk.stem import PorterStemmer
 from nltk.stem.wordnet import WordNetLemmatizer
-from nltk.corpus import wordnet as wn
 from scipy import spatial
 from collections import OrderedDict
 from operator import itemgetter
-import math
-import sys
-import time
-import result_log as logging
+
+
+starttime  = datetime.datetime.now()
+print("start  :%s" % starttime)
 
 # ----------------------------------------------------------------------------#
 # Configuration
 # ----------------------------------------------------------------------------#
-log = {}
-start = time.time()
-
 db_user = 'root'
 db_database = 'sharebox'
 language = 'EN'
@@ -75,12 +73,15 @@ except mysql.connector.Error as e:
 # ----------------------------------------------------------------------------#
 # Get word similarity cache
 # ----------------------------------------------------------------------------#
+# run cache_word_similarity.py first to fill word_sim_cache table
+# before the table is used in this program
+
 sql = """
-SELECT * FROM `word_sim_wup_stem_noun`
+SELECT * FROM `word_sim_cache`
 """
 
 # sql_ic = """
-# SELECT * FROM `information_content_lemma`
+# SELECT * FROM `ic_cache`
 # """
 
 word_sim_cache = {}
@@ -125,18 +126,19 @@ def NLP(data):
                  'support', 'residue', 'organic', 'remainder']
     words = [w for w in words if not w in term_list]  # for each word check if
 
-    # 5. Find Stem # Porter Stemmer
-    ps = PorterStemmer()
-    stemmed_words = []
-    for w in words:
-        stemmed_words.append(ps.stem(w))
-    data = stemmed_words
+    # 5. Find Stem/Lemma
 
-    # lm = WordNetLemmatizer()
-    # lemmatized_words = []
+    # ps = PorterStemmer()
+    # stemmed_words = []
     # for w in words:
-    #     lemmatized_words.append(lm.lemmatize(w))
-    # data = lemmatized_words
+    #     stemmed_words.append(ps.stem(w))
+    # data = stemmed_words
+
+    lm = WordNetLemmatizer()
+    lemmatized_words = []
+    for w in words:
+        lemmatized_words.append(lm.lemmatize(w))
+    data = lemmatized_words
 
     return data
 
@@ -174,19 +176,17 @@ def gen_item_vector(data, all_unique_words):
     vec = {}
     vec = [0] * len(all_unique_words)
 
-    # sent_set = set(data)
-    # joint_words = set(all_unique_words)
     i = 0
     for word in all_unique_words:
         if word in data:
             # if word in union exists in the sentence, set vector element to 1
             vec[i] = 1.0
-            # vec[i] = vec[i] * math.pow(ic_cache[joint_word], 2)
         else:
             # find the most similar word in the joint set and set the sim value
             sim_word, max_sim = most_similar_word(word, data)
             vec[i] = max_sim if max_sim > PHI else 0.0
-            # vec[i] = (max_sim * ic_cache[joint_word] * ic_cache[sim_word]) if max_sim > PHI else 0.0
+            # vec[i] = (max_sim * ic_cache[word] * ic_cache[sim_word]) if max_sim > PHI else 0.0
+
         i = i + 1
 
     # return list of item vectors
@@ -326,13 +326,9 @@ def eval_recommendations(ev):
 # 5. Main code
 # ----------------------------------------------------------------------------#
 # --------------- Config -------------------- #
-PHI = 0.8  # word similarity threshold
+PHI = 0.8  # word similarity threshold, retrieved from experiment
 top_n = 10  # Maximal number of recommendations in the recommendation set.
 min_sim = 0.1  # higher than zero
-
-test_type = 'wup-stem'
-pos = 'noun'
-
 
 ev = {}  # dictionary containing all evaluations of recommendations
 ewc_words = {}  # bag of words from the ewc description
@@ -378,8 +374,9 @@ print(ev)
 results = eval_recommendations(ev)
 print(results)
 
-end = time.time()
-print(end - start)
-log = {'test_type':test_type, 'pos':pos, 'wordsim_th':PHI, 'top_n':top_n, 'duration':end}
-log.update(results)
-logging.log_result(log)
+endtime = datetime.datetime.now()
+print("start  :%s" % starttime)
+print("end    :%s" % endtime)
+print("elapsed:%s" % (endtime - starttime))
+
+
