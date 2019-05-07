@@ -1,4 +1,9 @@
 import mysql.connector
+import datetime
+import time
+import math
+import word_sim as ws #contain Li's word similarity
+
 from nltk.corpus import stopwords
 from nltk.tokenize import RegexpTokenizer
 from nltk.stem import PorterStemmer
@@ -6,12 +11,14 @@ from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.corpus import wordnet as wn
 from nltk.corpus import brown
 
-import time
+
 
 # ----------------------------------------------------------------------------#
 # Configuration
 # ----------------------------------------------------------------------------#
-start = time.time()
+starttime = datetime.datetime.now()
+print("start:%s" % starttime)
+
 
 db_user = 'root'
 db_database = 'sharebox'
@@ -30,8 +37,6 @@ cursor = cnx.cursor(dictionary=True)
 sql = """
 SELECT * FROM `workshop_items2` WHERE language = '""" + language + """' AND type='Material' 
 """
-
-# RTRIM(LTRIM(wastecode)) != '99 99 99' LIMIT 0,25
 
 item_list = {}
 try:
@@ -71,16 +76,17 @@ except mysql.connector.Error as e:
 # 3. Empty table word similarity
 # ----------------------------------------------------------------------------#
 sql = "TRUNCATE TABLE word_sim_cache"
+# sql_ic = "TRUNCATE TABLE ic_cache"
 try:
     cursor.execute(sql)
-    cnx.commit()
+    # cursor.execute(sql_ic)
 
 except mysql.connector.Error as e:
     print("x Failed inserting data: {}\n".format(e))
 
 
 # ----------------------------------------------------------------------------#
-# Similarity Functions
+# preprocessing
 # ----------------------------------------------------------------------------#
 def NLP(data):
     # 0. Lowercase
@@ -104,21 +110,25 @@ def NLP(data):
     words = [w for w in words if not w in term_list]  # for each word check if
 
     # 5. Find Stem # Porter Stemmer
-    ps = PorterStemmer()
-    stemmed_words = []
-    for w in words:
-        stemmed_words.append(ps.stem(w))
-    data = stemmed_words
 
-    # lm = WordNetLemmatizer()
-    # lemmatized_words = []
+    # ps = PorterStemmer()
+    # stemmed_words = []
     # for w in words:
-    #     lemmatized_words.append(lm.lemmatize(w))
-    # data = lemmatized_words
+    #     stemmed_words.append(ps.stem(w))
+    # data = stemmed_words
+
+    lm = WordNetLemmatizer()
+    lemmatized_words = []
+    for w in words:
+        lemmatized_words.append(lm.lemmatize(w))
+    data = lemmatized_words
 
     return data
 
 
+# ----------------------------------------------------------------------------#
+# Similarity Functions
+# ----------------------------------------------------------------------------#
 def word_similarity(word_1, word_2):
     synset_pair = get_best_synset_pair(word_1, word_2)
     return synset_pair[2]
@@ -139,14 +149,14 @@ def get_best_synset_pair(word_1, word_2):
         for synset_1 in synsets_1:
             for synset_2 in synsets_2:
 
-                # ignore if both senses are from different POS or not Noun type
+                # ignore if both words are from different POS or not Noun type
                 # if synset_1._pos != synset_2._pos or synset_1._pos == 's' or synset_2._pos == 's
-                # if (synset_1._pos != synset_2._pos or synset_1._pos != 'n' or synset_2._pos != 'n'):
-                if (synset_1._pos != synset_2._pos):
+                if (synset_1._pos != synset_2._pos or synset_1._pos != 'n' or synset_2._pos != 'n'):
                     sim = 0
                 else:
                     # sim = wn.lin_similarity(synset_1, synset_2, brown_ic)
-                    sim = wn.wup_similarity(synset_1, synset_2)
+                    # sim = wn.wup_similarity(synset_1, synset_2)
+                    sim = ws.li_similarity(synset_1, synset_2)
                 if sim == None:
                     sim = 0
                 if sim > max_sim:
@@ -155,14 +165,36 @@ def get_best_synset_pair(word_1, word_2):
         return best_pair
 
 
+# def info_content(lookup_word): # for Li's sentence similarity
+#     """
+#     Uses the Brown corpus available in NLTK to calculate a Laplace
+#     smoothed frequency distribution of words, then uses this information
+#     to compute the information content of the lookup_word.
+#     """
+#     N = 0
+#     if N == 0:
+#         # poor man's lazy evaluation
+#         for sent in brown.sents():
+#             for word in sent:
+#                 word = word.lower()
+#                 if word not in brown_freqs:
+#                     brown_freqs[word] = 0
+#                 brown_freqs[word] = brown_freqs[word] + 1
+#                 N = N + 1
+#     lookup_word = lookup_word.lower()
+#     n = 0 if lookup_word not in brown_freqs else brown_freqs[lookup_word]
+#     return 1.0 - (math.log(n + 1) / math.log(N + 1))
+
 # ----------------------------------------------------------------------------#
 # Main code
 # ----------------------------------------------------------------------------#
 # --------------- Config -------------------- #
+# brown_freqs = dict()
+# N = 0
+
 ewc_words = {}  # bag of words from the ewc description
 item_words = {}  # bag of words from the item description
 all_unique_words = []
-# brown_ic = wn.ic(brown, False, 0.0)
 # --------------- End Config ---------------- #
 
 # Prepare the item_desc
@@ -189,11 +221,14 @@ for k, l in ewc_list.items():
 
 word_sim_dict = {}
 
-# build word similarity cache
+# build word similarity and information content cache
 print("unique words: {}".format(len(all_unique_words)))
 
 rows = []
+# ic_rows = []
 for first_word in all_unique_words:
+    # ic_row = (first_word, info_content(first_word))
+    # ic_rows.append(ic_row)
     for second_word in all_unique_words:
         if first_word == second_word:
             word_sim = 1
@@ -203,13 +238,16 @@ for first_word in all_unique_words:
         row = (first_word, second_word, word_sim)
         rows.append(row)
 
-        # sql = 'INSERT INTO word_sim_cache(word1, word2, similarity) VALUES ("{}","{}",{})'.format (first_word,second_word, word_sim)
 sql = """INSERT INTO word_sim_cache(word1, word2, similarity) VALUES (%s, %s, %s)"""
+# sql_ic = """INSERT INTO ic_cache(word1, ic) VALUES (%s, %s)"""
 try:
     cursor.executemany(sql, rows)
+    # cursor.executemany(sql_ic, ic_rows)
     cnx.commit()
 except mysql.connector.Error as e:
     print("x Failed inserting data: {}\n".format(e))
 
-end = time.time()
-print(end - start)
+endtime = datetime.datetime.now()
+print("start  :%s" % starttime)
+print("end    :%s" % endtime)
+print("elapsed:%s" % (endtime - starttime))
