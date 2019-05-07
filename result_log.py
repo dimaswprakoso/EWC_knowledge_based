@@ -10,6 +10,7 @@ def log_result(log_data):
 
     columns = ','.join("`" + str(x).replace('/', '_') + "`" for x in log_data.keys())
     values = ','.join("'" + str(x).replace('/', '_') + "'" for x in log_data.values())
+    sql_delete = "delete from result_log where "
     sql = "INSERT INTO %s (test_time, %s) VALUES (NOW(), %s );" % ('result_log', columns, values)
 
     try:

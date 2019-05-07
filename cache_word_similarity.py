@@ -10,6 +10,7 @@ from nltk.stem import PorterStemmer
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.corpus import wordnet as wn
 from nltk.corpus import brown
+from nltk.corpus import wordnet_ic
 
 
 
@@ -191,6 +192,7 @@ def get_best_synset_pair(word_1, word_2):
 # --------------- Config -------------------- #
 # brown_freqs = dict()
 # N = 0
+# brown_ic =  wordnet_ic.ic('ic-brown.dat')
 
 ewc_words = {}  # bag of words from the ewc description
 item_words = {}  # bag of words from the item description
