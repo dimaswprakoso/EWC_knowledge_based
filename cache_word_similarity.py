@@ -151,8 +151,9 @@ def get_best_synset_pair(word_1, word_2):
             for synset_2 in synsets_2:
 
                 # ignore if both words are from different POS or not Noun type
-                # if synset_1._pos != synset_2._pos or synset_1._pos == 's' or synset_2._pos == 's': # for Lin_similarity
+                # if synset_1._pos != synset_2._pos or synset_1._pos != 'v' or synset_2._pos != 'v' or synset_1._pos != 'n' or synset_2._pos != 'n':  # for Lin_similarity, only support verb and noun
                 if (synset_1._pos != synset_2._pos or synset_1._pos != 'n' or synset_2._pos != 'n'):
+                # if (synset_1._pos != synset_2._pos):
                     sim = 0
                 else:
                     # sim = wn.lin_similarity(synset_1, synset_2, brown_ic)
