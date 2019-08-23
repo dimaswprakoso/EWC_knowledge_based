@@ -21,22 +21,20 @@ db_user = 'root'
 db_database = 'sharebox'
 language = 'EN'
 
-# testing---------#
-method = 'knowledge'  # string, knowledge, corpus
-sent_sim = 'li'  # croft:summmarize, li:maximum
-ic = 'yes'  # yes, no
-word_sim_th_list = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-# word_sim_th_list = [0.8]
-# top_n_list = [5, 10, 15, 20]
-top_n_list = [5]
+# testing---------------------------------------------------------------------#
+method = 'knowledge'  # knowledge-based
+sent_sim = 'li'  # sentence similarity algorithm
+ic = 'yes'  # information content
+word_sim_th_list = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0] # word similarity threshold
+top_n_list = [10] # N-value in Top-N recommendation
 
-string_sim = 'croft'  # croft:if the word is not in wordnet then apply string sim, li:0
-word_sim_algo = 'path'  # path, wup, lin, li
-base_word = 'lemma'  # raw, stem, lemma
-pos = 'noun'  # noun, all
-# ----------------#
+string_sim = 'croft'  # if the word doesn't exist in word2vec model,apply Ratcliff/Obershelp pattern recognition
+word_sim_algo = 'path'  # word similarity algorithm, options: path, wup, lin, li
+base_word = 'lemma'  # pre-processing, options: raw, stem, lemma
+pos = 'noun'  # word type, options: noun, all
+# ----------------------------------------------------------------------------#
 
-db_table = "word_sim_%s_%s_%s_%s" % (string_sim, word_sim_algo, base_word, pos)
+db_table = "word_sim_%s_%s_%s_%s" % (string_sim, word_sim_algo, base_word, pos) # word similarity cache
 db_table_ic = "ic_%s" % (base_word)
 min_sim = 0.000001  # higher than zero
 
@@ -428,7 +426,7 @@ for top_n in top_n_list:
             # Evaluate if the recommendation was correct (with stats)
             ev[m] = eval_topn(rec, item_list[m][1])
 
-        # Calculate the performance metrics (e.g. accuracy, precision, recall, F1) over all items
+        # Calculate the performance metrics (e.g. recall, ARHR, precision) over all items
         print(ev)
         # logging.log_result_ev(ev)
         results = eval_recommendations(ev)
