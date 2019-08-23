@@ -25,11 +25,11 @@ language = 'EN'
 method = 'knowledge'  # knowledge-based
 sent_sim = 'li'  # sentence similarity algorithm
 ic = 'yes'  # information content
-word_sim_th_list = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0] # word similarity threshold
+word_sim_th_list = [0.8] # word similarity threshold
 top_n_list = [10] # N-value in Top-N recommendation
 
 string_sim = 'croft'  # if the word doesn't exist in word2vec model,apply Ratcliff/Obershelp pattern recognition
-word_sim_algo = 'path'  # word similarity algorithm, options: path, wup, lin, li
+word_sim_algo = 'li'  # word similarity algorithm, options: path, wup, lin, li
 base_word = 'lemma'  # pre-processing, options: raw, stem, lemma
 pos = 'noun'  # word type, options: noun, all
 # ----------------------------------------------------------------------------#
