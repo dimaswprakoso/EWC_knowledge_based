@@ -1,5 +1,7 @@
 import mysql.connector
 import datetime
+import time
+import result_log as logging
 
 from nltk.corpus import stopwords
 from nltk.tokenize import RegexpTokenizer
@@ -9,8 +11,7 @@ from scipy import spatial
 from collections import OrderedDict
 from operator import itemgetter
 
-
-starttime  = datetime.datetime.now()
+starttime = datetime.datetime.now()
 print("start  :%s" % starttime)
 
 # ----------------------------------------------------------------------------#
@@ -19,6 +20,25 @@ print("start  :%s" % starttime)
 db_user = 'root'
 db_database = 'sharebox'
 language = 'EN'
+
+# testing---------#
+method = 'knowledge'  # string, knowledge, corpus
+sent_sim = 'li'  # croft:summmarize, li:maximum
+ic = 'yes'  # yes, no
+word_sim_th_list = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+# word_sim_th_list = [0.8]
+# top_n_list = [5, 10, 15, 20]
+top_n_list = [5]
+
+string_sim = 'croft'  # croft:if the word is not in wordnet then apply string sim, li:0
+word_sim_algo = 'path'  # path, wup, lin, li
+base_word = 'lemma'  # raw, stem, lemma
+pos = 'noun'  # noun, all
+# ----------------#
+
+db_table = "word_sim_%s_%s_%s_%s" % (string_sim, word_sim_algo, base_word, pos)
+db_table_ic = "ic_%s" % (base_word)
+min_sim = 0.000001  # higher than zero
 
 # ----------------------------------------------------------------------------#
 # 0. Initialize
@@ -33,8 +53,6 @@ cursor = cnx.cursor(dictionary=True)
 sql = """
 SELECT * FROM `workshop_items2` WHERE language = '""" + language + """' AND type='Material' 
 """
-
-# RTRIM(LTRIM(wastecode)) != '99 99 99' LIMIT 0,25
 
 item_list = {}
 try:
@@ -76,16 +94,11 @@ except mysql.connector.Error as e:
 # run cache_word_similarity.py first to fill word_sim_cache table
 # before the table is used in this program
 
-sql = """
-SELECT * FROM `word_sim_cache`
-"""
-
-# sql_ic = """
-# SELECT * FROM `ic_cache`
-# """
+sql = """SELECT * FROM `%s`""" % db_table
+sql_ic = """SELECT * FROM `%s`""" % db_table_ic
 
 word_sim_cache = {}
-# ic_cache = {}
+ic_cache = {}
 
 try:
     results = cursor.execute(sql)
@@ -93,10 +106,11 @@ try:
     for row in rows:
         word_sim_cache[row['word1'], row['word2']] = row['similarity']
 
-    # results = cursor.execute(sql_ic)
-    # rows = cursor.fetchall()
-    # for row in rows:
-    #     ic_cache[row['word1']] = row['ic']
+    if ic == 'yes':
+        results = cursor.execute(sql_ic)
+        rows = cursor.fetchall()
+        for row in rows:
+            ic_cache[row['word1']] = row['ic']
 
 except mysql.connector.Error as e:
     print("x Failed loading data: {}\n".format(e))
@@ -116,29 +130,35 @@ def NLP(data):
     # 2. Remove short words
     words = [w for w in words if len(w) > 2]
 
-    # 3. Remove Stopwords # load stopwords from enlgihs language
+    # 3. Remove Stopwords # load stopwords from english language
     stop_words = set(stopwords.words("english"))
     words = [w for w in words if not w in stop_words]  # for each word check if
 
     # 4 Remove common terminology in waste listings e.g. (waste)
-    term_list = ['waste', 'wastes', 'scrap', 'scraps' 'process', 'consultancy', 'advice', 'training', 'service',
-                 'managing', 'management', 'recycling', 'recycle', 'industry', 'industrial', 'material', 'quantity',
-                 'support', 'residue', 'organic', 'remainder']
+    term_list = ['waste', 'scrap', 'scraps', 'process', 'processes', 'processed', 'processing', 'unprocessed',
+                 'consultancy', 'advice', 'training', 'service', 'managing', 'management', 'recycling', 'recycle',
+                 'industry', 'industrial', 'material', 'materials', 'quantity', 'support', 'residue', 'organic',
+                 'remainder', 'specific', 'particular', 'solution', 'solutions', 'substance', 'substances', 'product',
+                 'production', 'use', 'used', 'unused', 'consumption', 'otherwise', 'specified', 'based', 'spent',
+                 'hazardous', 'dangerous', 'containing', 'other']
+
     words = [w for w in words if not w in term_list]  # for each word check if
+    data = words
 
     # 5. Find Stem/Lemma
 
-    # ps = PorterStemmer()
-    # stemmed_words = []
-    # for w in words:
-    #     stemmed_words.append(ps.stem(w))
-    # data = stemmed_words
-
-    lm = WordNetLemmatizer()
-    lemmatized_words = []
-    for w in words:
-        lemmatized_words.append(lm.lemmatize(w))
-    data = lemmatized_words
+    if base_word == 'stem':
+        ps = PorterStemmer()
+        stemmed_words = []
+        for w in words:
+            stemmed_words.append(ps.stem(w))
+        data = stemmed_words
+    elif base_word == 'lemma':
+        lm = WordNetLemmatizer()
+        lemmatized_words = []
+        for w in words:
+            lemmatized_words.append(lm.lemmatize(w))
+        data = lemmatized_words
 
     return data
 
@@ -177,15 +197,27 @@ def gen_item_vector(data, all_unique_words):
     vec = [0] * len(all_unique_words)
 
     i = 0
-    for word in all_unique_words:
-        if word in data:
-            # if word in union exists in the sentence, set vector element to 1
-            vec[i] = 1.0
-        else:
-            # find the most similar word in the joint set and set the sim value
-            sim_word, max_sim = most_similar_word(word, data)
-            vec[i] = max_sim if max_sim > PHI else 0.0
-            # vec[i] = (max_sim * ic_cache[word] * ic_cache[sim_word]) if max_sim > PHI else 0.0
+    for unique_word in all_unique_words:
+        if sent_sim == 'croft':
+            for word in data:
+                if unique_word == word:
+                    vec[i] = vec[i] + 1.0
+                else:
+                    vec[i] = vec[i] + word_sim_cache[unique_word, word]
+                    # wsim = word_sim_cache[unique_word, word]
+                    # if wsim>=word_sim_th:
+                    #     vec[i] = vec[i] + wsim
+        else: # li, etc.
+            if unique_word in data:
+                # if word in union exists in the sentence, set vector element to 1
+                vec[i] = 1.0
+            else:
+                # find the most similar word in the joint set and set the sim value
+                sim_word, max_sim = most_similar_word(unique_word, data)
+                if ic == 'no':
+                    vec[i] = max_sim if max_sim > word_sim_th else 0.0
+                else:
+                    vec[i] = (max_sim * ic_cache[unique_word] * ic_cache[sim_word]) if max_sim > word_sim_th else 0.0
 
         i = i + 1
 
@@ -251,6 +283,10 @@ def eval_topn(rec_list, ewc):
     m['correct'] = 0  # was the right recommendation in the list
     m['position'] = 0  # What was the position (no 2 out of 10) of the right
     m['ewc_label'] = 1  # Some items have '99 99 99', thus no EWC code assigned. Needed for EWC
+    m['rhr'] = 0  # reciprocal hit-rank
+
+    if ewc == '99 99 99':
+        m['ewc_label'] = 0
 
     for i, j in rec_list.items():
         # print(i+" -<>- "+ewc)
@@ -258,8 +294,9 @@ def eval_topn(rec_list, ewc):
         if i == ewc:
             m['correct'] = 1
             m['position'] = it
-        if ewc == '99 99 99':
-            m['ewc_label'] = 0
+            m['rhr'] = 1 / it
+        # if ewc == '99 99 99':
+        #     m['ewc_label'] = 0
 
         it += 1
 
@@ -283,40 +320,61 @@ def eval_recommendations(ev):
 
     m['tp'] = 0  # True positives (inherent to all correct recommendations)
     for i, j in ev.items():
-        if j['correct'] > 0:
+        # if j['correct'] > 0:
+        if j['no_rec'] > 0 and j['correct'] > 0:
             m['tp'] += 1
 
     m['fp'] = 0  # False positives (inherent to incorrect recommendations)
     for i, j in ev.items():
-        if j['correct'] == 0:
+        # if j['correct'] == 0:
+        if j['no_rec'] > 0 and j['correct'] == 0:
             m['fp'] += 1
 
     m['tn'] = 0  # True negatives ()
     for i, j in ev.items():
-        if j['ewc_label'] == 1 and j['no_rec'] == 0:
+        # if j['ewc_label'] == 1 and j['no_rec'] == 0:
+        if j['no_rec'] == 0 and j['ewc_label'] == 0:
             m['tn'] += 1
 
     m['fn'] = 0  # False negatives ()
     for i, j in ev.items():
-        if j['correct'] == 0 and j['no_rec'] == 0:
+        # if j['correct'] == 0 and j['no_rec'] == 0:
+        if j['no_rec'] == 0 and j['ewc_label'] == 1:
             m['fn'] += 1
+
+    rhr_total = 0
+    for i, j in ev.items():
+        if j['correct'] > 0:
+            rhr_total += j['rhr']
 
     # --------------------------------- #
 
     # Precision = TP / TP + FP
-    m['precision'] = m['tp'] / (m['tp'] + m['fp'])
+    if m['tp'] + m['fp'] > 0:
+        m['precision'] = m['tp'] / (m['tp'] + m['fp'])
+    else:
+        m['precision'] = 0
 
     # Recall = TP / no_items_with_ewc_label
-    m['recall'] = m['tp'] / m['no_labeled']
+    if m['no_labeled'] > 0:
+        m['recall'] = m['tp'] / m['no_labeled']
+    else:
+        m['recall'] = 0
 
     # Accuracy = TP + True Negatives / all items
-    m['accuracy'] = (m['tp'] + m['tn']) / m['no_items']
+    if m['no_items'] > 0:
+        m['accuracy'] = (m['tp'] + m['tn']) / m['no_items']
+    else:
+        m['accuracy'] = 0
 
     # F1 measure
     if m['precision'] + m['recall'] > 0:
         m['f1'] = 2 * ((m['precision'] * m['recall']) / (m['precision'] + m['recall']))
     else:
         m['f1'] = 0
+
+    # Average Reciprocal Hit-rank
+    m['arhr'] = rhr_total / len(ev)
 
     # Return all measures
     return m
@@ -326,10 +384,6 @@ def eval_recommendations(ev):
 # 5. Main code
 # ----------------------------------------------------------------------------#
 # --------------- Config -------------------- #
-PHI = 0.8  # word similarity threshold, retrieved from experiment
-top_n = 10  # Maximal number of recommendations in the recommendation set.
-min_sim = 0.1  # higher than zero
-
 ev = {}  # dictionary containing all evaluations of recommendations
 ewc_words = {}  # bag of words from the ewc description
 item_words = {}  # bag of words from the item description
@@ -358,25 +412,36 @@ for i, j in item_list.items():
 for k, l in ewc_list.items():
     ewc_words[k] = NLP(l[0])
 
-# for all items
-for m, n in item_list.items():
-    # Generate the similarity matrix
-    sim_matrix = recommend(item_words[m], ewc_words)
+# conduct series of test
+for top_n in top_n_list:
+    for word_sim_th in word_sim_th_list:
+        start = time.time()
 
-    # generate the list of recommendations for an item description
-    rec = generate_recommendation_list(sim_matrix, top_n, min_sim)
+        # for all items
+        for m, n in item_list.items():
+            # Generate the similarity matrix
+            sim_matrix = recommend(item_words[m], ewc_words)
 
-    # Evaluate if the recommendation was correct (with stats)
-    ev[m] = eval_topn(rec, item_list[m][1])
+            # generate the list of recommendations for an item description
+            rec = generate_recommendation_list(sim_matrix, top_n, min_sim)
 
-# Calculate the performance metrics (e.g. accuracy, precision, recall, F1) over all items
-print(ev)
-results = eval_recommendations(ev)
-print(results)
+            # Evaluate if the recommendation was correct (with stats)
+            ev[m] = eval_topn(rec, item_list[m][1])
+
+        # Calculate the performance metrics (e.g. accuracy, precision, recall, F1) over all items
+        print(ev)
+        # logging.log_result_ev(ev)
+        results = eval_recommendations(ev)
+        print(results)
+
+        end = time.time()
+        log = {'duration': end - start, 'method': method, 'sent_sim': sent_sim,'ic':ic, 'string_sim': string_sim,
+               'word_sim_algo': word_sim_algo, 'base_word': base_word, 'pos': pos, 'word_sim_th': word_sim_th,
+               'top_n': top_n}
+        log.update(results)
+        logging.log_result(log)
 
 endtime = datetime.datetime.now()
 print("start  :%s" % starttime)
 print("end    :%s" % endtime)
 print("elapsed:%s" % (endtime - starttime))
-
-

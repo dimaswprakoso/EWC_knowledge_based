@@ -1,6 +1,6 @@
 import math
 import sys
-
+from nltk.corpus import wordnet as wn
 
 # constant
 ALPHA = 0.2
@@ -74,7 +74,9 @@ def li_similarity(synset1, synset2):
     similarity = length_dist(synset1, synset2) * hierarchy_dist(synset1, synset2)
     return similarity
 
+syn1 = wn.synset('iron.n.01')
+syn2 = wn.synset('steel.n.01')
 
-
+print(li_similarity(syn1,syn2))
 
 
